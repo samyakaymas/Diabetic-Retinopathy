@@ -47,28 +47,28 @@ fclose(fileID);
 WITHOUTNOISE1 = [dataArray{1:end-1}];
 %% Clear temporary variables
 clearvars filename delimiter formatSpec fileID dataArray ans;
+%Populating the data
 WITHOUTNOISE1=vertcat(WITHOUTNOISE1,WITHOUTNOISE1,WITHOUTNOISE1,WITHOUTNOISE1,WITHOUTNOISE1);
+WITHOUTNOISE1=vertcat(WITHOUTNOISE1,WITHOUTNOISE1);
 [M,N]=size(WITHOUTNOISE1);
-avgtime=0;
+%Specifying the seed value
+s = RandStream('mt19937ar','Seed',0);
 avgaccu=0;
-boxpl=zeros(10,3);
-for q=1:10
-    rand_pos = randperm(M); %array of random positions
+avgtime=0;
+for ii=1:10
+    rand_pos = randperm(s,M); %array of random positions
     % new array with original data randomly distributed
     data=zeros(M,N);
     for k = 1:M
         data(k,:) = WITHOUTNOISE1(rand_pos(k),:);
     end
 
-
-    % Get Data and Labels
     features=data(:,1:end-1);
     labels=data(:,end);
-
     % Normalize labels
-    labels(labels==0)=-1;
     features=zscore(features);
-
+    labels(labels==0)=-1;
+    % Normalize labels
 
     % Separate training and test data (80:20 split)
     total_samples=size(features,1);
@@ -79,44 +79,34 @@ for q=1:10
     yTrain=labels(1:train_samples,:);
     xTest=features(train_samples+1:end,:);
     yTest=labels(train_samples+1:end,:);
-
-    % Define hyperparameter values
-    C1=0.125; C2=0.125;
-    V1=0.125; V2=0.125;
-    T1=0.1; T2=0.1;
-
-    % Run Twin SVM (Linear)
-    
-    [ wA, bA, wB, bB,time ] = LinearPinTWSVM( xTrain, yTrain, C1, C2, V1, V2, T1, T2 );
-    
+    %Defining Hyperparameters
+    C=0.44;
+    V=0.125;
+    T1=0.1;
+    T2=0.1;
+    [ wA, bA, wB, bB,time] = LinearPinTWSVM( xTrain, yTrain, C, C,V,V,T1,T2  );
     avgtime=avgtime+time;
     yPred=zeros(size(xTest,1),1);
-    for i=1:size(xTest,1)
-        sample=xTest(i,:);
+    for i1=1:size(xTest,1)
+        sample=xTest(i1,:);
         distA=(sample*wA' + bA)/norm(wA);
         distB=(sample*wB' + bB)/norm(wB);
         if (distA>distB)
-            yPred(i)=-1;
+            yPred(i1)=-1;
         else
-            yPred(i)=1;
+            yPred(i1)=1;
         end
     end
-
-
-
     accuracy=(sum(yPred==yTest)/length(yTest))*100;
 
-    % Sanity check - if labels are predicted wrongly then flip
     if (accuracy<50)
         yPred=-1*yPred;
         accuracy=(sum(yPred==yTest)/length(yTest))*100;
     end
     avgaccu=avgaccu+accuracy;
-end
-%Display the accuracy and time
- disp('Accuracy (Linear) is');
- disp(avgaccu/10);
- disp('Time taken is');
- disp(avgtime/10);
- 
- 
+end;
+%Display time and accuracy
+disp('Accuracy (Linear) is');
+disp(avgaccu/10);
+disp('Time taken is');
+disp(avgtime/10);

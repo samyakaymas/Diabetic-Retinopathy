@@ -66,6 +66,9 @@ clearvars filename delimiter formatSpec fileID dataArray ans raw col numericData
 [M,N]=size(PimaIndians);
 avgtime=0;
 avgaccu=0;
+%Specifying the seed value
+s = RandStream('mt19937ar','Seed',0);
+%Doing cross validation
 for q=1:10
     rand_pos = randperm(M); %array of random positions
     % new array with original data randomly distributed

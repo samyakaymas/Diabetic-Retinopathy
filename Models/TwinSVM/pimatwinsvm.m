@@ -74,6 +74,8 @@ PimaIndians = cell2mat(raw);
 %% Clear temporary variables
 clearvars filename delimiter formatSpec fileID dataArray ans raw col numericData rawData row regexstr result numbers invalidThousandsSeparator thousandsRegExp me;
 [M,N]=size(PimaIndians);
+%Specifying the seed value
+s = RandStream('mt19937ar','Seed',0);
 avgaccu=0;
 avgtime=0;
 for q=1:10

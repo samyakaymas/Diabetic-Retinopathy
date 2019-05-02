@@ -1,3 +1,5 @@
+clc;clearvars;close all;
+rng default;
 %% Import data from text file.
 % Script for importing data from the following text file:
 %
@@ -48,117 +50,134 @@ WITHNOISE1 = [dataArray{1:end-1}];
 %% Clear temporary variables
 clearvars filename delimiter formatSpec fileID dataArray ans;
 [M,N]=size(WITHNOISE1);
-rand_pos = randperm(M); %array of random positions
-% new array with original data randomly distributed
-data=zeros(M,N);
-for k = 1:M
-    data(k,:) = WITHNOISE1(rand_pos(k),:);
-end
-
-% Get Data and Labels
-features=data(:,1:end-1);
-labels=data(:,end);
-
-% Normalize labels
-labels(labels==0)=-1;
-features=zscore(features);
-
-
-% Separate training and test data (80:20 split)
-total_samples=size(features,1);
-train_samples=round(0.8*total_samples);
-
-% Define training and test samples
-xTrain=features(1:train_samples,:);
-yTrain=labels(1:train_samples,:);
-xTest=features(train_samples+1:end,:);
-yTest=labels(train_samples+1:end,:);
-Ccc=linspace(1,200,200);
+%Specifying the seed value
+s = RandStream('mt19937ar','Seed',0);
+%Range of Hyperparameter
+%Ccc=linspace(0,1,101);for range(0,1)
+Ccc=[linspace(0,200,51)];%for range(0,200)
 for ttt=1:length(Ccc)
     c=Ccc(ttt);
-    C1=c; C2=c;
-    V1=0.125; V2=0.125;
-    T1=0.1; T2=0.1;
-    % Run Pin Twin SVM (Linear)
-
-    [ wA, bA, wB, bB,time ] = LinearPinTWSVM( xTrain, yTrain, C1, C2, V1, V2, T1, T2 );
-    yPred=zeros(size(xTest,1),1);
-    for i=1:size(xTest,1)
-        sample=xTest(i,:);
-        distA=(sample*wA' + bA)/norm(wA);
-        distB=(sample*wB' + bB)/norm(wB);
-        if (distA>distB)
-            yPred(i)=-1;
-        else
-            yPred(i)=1;
+    pinacc=0;
+    twinacc=0;
+    svmacc=0;
+    for ite=1:10
+        rand_pos = randperm(s,M); %array of random positions
+        % new array with original data randomly distributed
+        data=zeros(M,N);
+        for k = 1:M
+            data(k,:) = WITHNOISE1(rand_pos(k),:);
         end
-    end
+
+        % Get Data and Labels
+        features=data(:,1:end-1);
+        labels=data(:,end);
+
+        % Normalize labels
+        labels(labels==0)=-1;
+        features=zscore(features);
 
 
+        % Separate training and test data (80:20 split)
+        total_samples=size(features,1);
+        train_samples=round(0.8*total_samples);
 
-    accuracy=(sum(yPred==yTest)/length(yTest))*100;
+        % Define training and test samples
+        xTrain=features(1:train_samples,:);
+        yTrain=labels(1:train_samples,:);
+        xTest=features(train_samples+1:end,:);
+        yTest=labels(train_samples+1:end,:);
+        C1=c; C2=c;
+        V1=0.125; V2=0.125;
+        T1=0.1; T2=0.1;
+        % Run Pin Twin SVM (Linear)
 
-    % Sanity check - if labels are predicted wrongly then flip
-    if (accuracy<50)
-        yPred=-1*yPred;
-        accuracy=(sum(yPred==yTest)/length(yTest))*100;
-    end
-    noisepinplot(ttt)=accuracy;
-
-    yTest(yTest==-1)=0;
-    %Defining Hyperparameters
-    C=c;
-    %Run SVM
-    [w,b,time]=SVM(xTrain, yTrain, C );
-    [n,m]=size(xTest);
-    yPred=(xTest*w'+b*ones(n,1))>0;
-    accuracy=(sum(yPred==yTest)/length(yTest))*100;   
-    if(accuracy<50)
-        accuracy=100-accuracy;
-    end
-    noisesvmplot(ttt)=accuracy;
-    
-    yTest(yTest==0)=-1;
-    % Define hyperparameter values
-    C1=c; C2=c;
-
-    % Run Twin SVM (Linear)
-    
-    [ wA, bA, wB, bB,time ] = LinearTWSVM( xTrain, yTrain, C1, C2 );
-    
-    yPred=zeros(size(xTest,1),1);
-    for i=1:size(xTest,1)
-        sample=xTest(i,:);
-        distA=(sample*wA + bA)/norm(wA);
-        distB=(sample*wB + bB)/norm(wB);
-        if (distA>distB)
-            yPred(i)=-1;
-        else
-            yPred(i)=1;
+        [ wA, bA, wB, bB,time ] = LinearPinTWSVM( xTrain, yTrain, C1, C2, V1, V2, T1, T2 );
+        yPred=zeros(size(xTest,1),1);
+        for i=1:size(xTest,1)
+            sample=xTest(i,:);
+            distA=(sample*wA' + bA)/norm(wA);
+            distB=(sample*wB' + bB)/norm(wB);
+            if (distA>distB)
+                yPred(i)=-1;
+            else
+                yPred(i)=1;
+            end
         end
-    end
 
-    accuracy=(sum(yPred==yTest)/length(yTest))*100;
 
-    % Sanity check - if labels are predicted wrongly then flip
-    if (accuracy<50)
-        yPred=-1*yPred;
+
         accuracy=(sum(yPred==yTest)/length(yTest))*100;
+
+        % Sanity check - if labels are predicted wrongly then flip
+        if (accuracy<50)
+            yPred=-1*yPred;
+            accuracy=(sum(yPred==yTest)/length(yTest))*100;
+        end
+        pinacc=pinacc+accuracy;
+
+        yTest(yTest==-1)=0;
+        %Defining Hyperparameters
+        C=c;
+        %Run SVM
+        [w,b,time]=SVM(xTrain, yTrain, C );
+        [n,m]=size(xTest);
+        yPred=(xTest*w'+b*ones(n,1))>0;
+        accuracy=(sum(yPred==yTest)/length(yTest))*100;   
+        if(accuracy<50)
+            accuracy=100-accuracy;
+        end
+        svmacc=svmacc+accuracy;
+
+        yTest(yTest==0)=-1;
+        % Define hyperparameter values
+        C1=c; C2=c;
+
+        % Run Twin SVM (Linear)
+
+        [ wA, bA, wB, bB,time ] = LinearTWSVM( xTrain, yTrain, C1, C2 );
+
+        yPred=zeros(size(xTest,1),1);
+        for i=1:size(xTest,1)
+            sample=xTest(i,:);
+            distA=(sample*wA + bA)/norm(wA);
+            distB=(sample*wB + bB)/norm(wB);
+            if (distA>distB)
+                yPred(i)=-1;
+            else
+                yPred(i)=1;
+            end
+        end
+
+        accuracy=(sum(yPred==yTest)/length(yTest))*100;
+
+        % Sanity check - if labels are predicted wrongly then flip
+        if (accuracy<50)
+            yPred=-1*yPred;
+            accuracy=(sum(yPred==yTest)/length(yTest))*100;
+        end
+        twinacc=twinacc+accuracy;
     end
-    noisetwinplot(ttt)=accuracy;
+    noisepinplot(ttt)=pinacc/10;
+    noisetwinplot(ttt)=twinacc/10;
+    noisesvmplot(ttt)=svmacc/10;
 end
 %Plotting the 2d line plot which will compare the aaccuracies of all the 3
 %models on different hyperparameters.
 figure
-plot(Ccc,noisepinplot,'g');
-
+%Finding peak
+[maxvalue, ind] = max(noisepinplot);
+plot(Ccc,noisepinplot,'r',Ccc(ind),maxvalue,'or');
 hold on 
-plot(Ccc,noisesvmplot,'b--');
+%Finding peak
+[maxvalue1, ind1] = max(noisesvmplot);
+plot(Ccc,noisesvmplot,'b',Ccc(ind1),maxvalue1,'ob');
+hold on 
+%Finding peak
+[maxvalue2, ind2] = max(noisetwinplot);
+plot(Ccc,noisetwinplot,'g',Ccc(ind2),maxvalue2,'og');
 
-hold on
-plot(Ccc,noisetwinplot,'c:');
 
-legend('Twin Pin noise','Svm noise','Twin svm noise');
+legend('Pinball TSVM with noise',strcat(num2str(maxvalue),',',num2str(Ccc(ind))),'Linear SVM with noise',strcat(num2str(maxvalue1),',',num2str(Ccc(ind1))),'TSVM with noise',strcat(num2str(maxvalue2),',',num2str(Ccc(ind2))));
 xlabel('Regularization Parameter C');
 ylabel('Accuracy');
 title('Accuracy vs Regularization Parameter');

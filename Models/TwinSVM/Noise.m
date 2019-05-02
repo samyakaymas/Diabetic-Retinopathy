@@ -50,27 +50,28 @@ fclose(fileID);
 WITHNOISE1 = [dataArray{1:end-1}];
 %% Clear temporary variables
 clearvars filename delimiter formatSpec fileID dataArray ans;
+%Populating the data
 WITHNOISE1=vertcat(WITHNOISE1,WITHNOISE1,WITHNOISE1,WITHNOISE1,WITHNOISE1);
 WITHNOISE1=vertcat(WITHNOISE1,WITHNOISE1);
 [M,N]=size(WITHNOISE1);
+%Specifying the seed value
+s = RandStream('mt19937ar','Seed',0);
 avgaccu=0;
 avgtime=0;
-for q=1:10
-    rand_pos = randperm(M); %array of random positions
+for ii=1:10
+    rand_pos = randperm(s,M); %array of random positions
     % new array with original data randomly distributed
     data=zeros(M,N);
     for k = 1:M
         data(k,:) = WITHNOISE1(rand_pos(k),:);
     end
-    % Get Data and Labels
+
     features=data(:,1:end-1);
     labels=data(:,end);
-
     % Normalize labels
-    labels(labels==0)=-1;
-    % Normalize features
     features=zscore(features);
-
+    labels(labels==0)=-1;
+    % Normalize labels
 
     % Separate training and test data (80:20 split)
     total_samples=size(features,1);
@@ -81,13 +82,10 @@ for q=1:10
     yTrain=labels(1:train_samples,:);
     xTest=features(train_samples+1:end,:);
     yTest=labels(train_samples+1:end,:);
-    % Define hyperparameter values
-    C1=0.0625; C2=.0625;
-
-    % Run Twin SVM (Linear)
+    %Defining Hyperparameters
+    C=0.0625;
     
-    [ wA, bA, wB, bB,time ] = LinearTWSVM( xTrain, yTrain, C1, C2 );
-    
+    [ wA, bA, wB, bB,time] = LinearTWSVM( xTrain, yTrain, C, C );
     avgtime=avgtime+time;
     yPred=zeros(size(xTest,1),1);
     for i=1:size(xTest,1)
@@ -100,19 +98,15 @@ for q=1:10
             yPred(i)=1;
         end
     end
-
     accuracy=(sum(yPred==yTest)/length(yTest))*100;
-
-    % Sanity check - if labels are predicted wrongly then flip
     if (accuracy<50)
         yPred=-1*yPred;
         accuracy=(sum(yPred==yTest)/length(yTest))*100;
     end
     avgaccu=avgaccu+accuracy;
-end
+end;
 %Display time and accuracy
- disp('Accuracy (Linear) is');
- disp(avgaccu/10);
- disp('Time taken is');
- disp(avgtime/10);
-  
+disp('Accuracy (Linear) is');
+disp(avgaccu/10);
+disp('Time taken is');
+disp(avgtime/10);

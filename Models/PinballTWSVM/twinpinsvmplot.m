@@ -40,38 +40,45 @@ WITHNOISE2 = [dataArray{1:end-1}];
 %% Clear temporary variables
 clearvars filename delimiter formatSpec fileID dataArray ans;
 [M,N]=size(WITHNOISE2);
-rand_pos = randperm(M); %array of random positions
-% new array with original data randomly distributed
-data=zeros(M,N);
-for k = 1:M
-    data(k,:) = WITHNOISE2(rand_pos(k),:);
-end
-
-% Get Data and Labels
-features=data(:,1:end-1);
-labels=data(:,end);
-
-% Normalize labels
-labels(labels==0)=-1;
-features=zscore(features);
-
-
-% Separate training and test data (80:20 split)
-total_samples=size(features,1);
-train_samples=round(0.8*total_samples);
-
-% Define training and test samples
-xTrain=features(1:train_samples,:);
-yTrain=labels(1:train_samples,:);
-xTest=features(train_samples+1:end,:);
-yTest=labels(train_samples+1:end,:);
-v=64;
+%Defining Hyperparameter
+v=0.125;
 t1=0.1;
-t2=0.5;
-C=linspace(1,200,200);
+t2=0.1;
+C=[-4,-3,-2,-1,0,1,2];
+C=2.^C;
 for i=1:length(C)
     c=C(i);
-    [ accu(i)]=accutwinpinsvm( xTrain,yTrain, xTest, yTest, c,c,v,v,t1,t2);
+    avgaccu=0;
+    for ite=1:10
+        rand_pos = randperm(M); %array of random positions
+        % new array with original data randomly distributed
+        data=zeros(M,N);
+        for k = 1:M
+            data(k,:) = WITHNOISE2(rand_pos(k),:);
+        end
+
+        features=data(:,1:end-1);
+        labels=data(:,end);
+        % Normalize labels
+        features=zscore(features);
+        labels(labels==0)=-1;
+        % Normalize labels
+
+
+        % Separate training and test data (80:20 split)
+        total_samples=size(features,1);
+        train_samples=round(0.8*total_samples);
+
+        % Define training and test samples
+        xTrain=features(1:train_samples,:);
+        yTrain=labels(1:train_samples,:);
+        xTest=features(train_samples+1:end,:);
+        yTest=labels(train_samples+1:end,:);
+        
+        [k]=accutwinpinsvm(xTrain,yTrain,xTest,yTest,c,c,v,v,t1,t2);
+        avgaccu=avgaccu+k;
+    end
+    accu(i)=avgaccu/10;
 end
 
 
@@ -115,48 +122,53 @@ WITHOUTNOISE1 = [dataArray{1:end-1}];
 %% Clear temporary variables
 clearvars filename delimiter formatSpec fileID dataArray ans;
 [M,N]=size(WITHOUTNOISE1);
-rand_pos = randperm(M); %array of random positions
-% new array with original data randomly distributed
-data=zeros(M,N);
-for k = 1:M
-    data(k,:) = WITHOUTNOISE1(rand_pos(k),:);
-end
-
-
-% Get Data and Labels
-features=data(:,1:end-1);
-labels=data(:,end);
-
-% Normalize labels
-labels(labels==0)=-1;
-features=zscore(features);
-
-
-% Separate training and test data (80:20 split)
-total_samples=size(features,1);
-train_samples=round(0.8*total_samples);
-
-% Define training and test samples
-xTrain=features(1:train_samples,:);
-yTrain=labels(1:train_samples,:);
-xTest=features(train_samples+1:end,:);
-yTest=labels(train_samples+1:end,:);
-
-%Defining hyperparameter
-C=linspace(1,200,200);
+C=[-4,-3,-2,-1,0,1,2];
+C=2.^C;
 for i=1:length(C)
     c=C(i);
-    [accu_without(i)]=accutwinpinsvm( xTrain,yTrain, xTest, yTest, c,c,v,v,t1,t2);
+    avgaccu=0;
+    for ite=1:10
+        rand_pos = randperm(M); %array of random positions
+        % new array with original data randomly distributed
+        data=zeros(M,N);
+        for k = 1:M
+            data(k,:) = WITHOUTNOISE1(rand_pos(k),:);
+        end
+
+        features=data(:,1:end-1);
+        labels=data(:,end);
+        % Normalize labels
+        features=zscore(features);
+        labels(labels==0)=-1;
+        % Normalize labels
+
+
+        % Separate training and test data (80:20 split)
+        total_samples=size(features,1);
+        train_samples=round(0.8*total_samples);
+
+        % Define training and test samples
+        xTrain=features(1:train_samples,:);
+        yTrain=labels(1:train_samples,:);
+        xTest=features(train_samples+1:end,:);
+        yTest=labels(train_samples+1:end,:);
+        
+        [k]=accutwinpinsvm(xTrain,yTrain,xTest,yTest,c,c,v,v,t1,t2);
+        avgaccu=avgaccu+k;
+    end
+    accu_without(i)=avgaccu/10;
 end
 
 %plotting the graph
 figure
-plot(C,accu,'g');
-
+%Finding peak
+[maxvalue, ind] = max(accu);
+plot(C,accu,'r',C(ind),maxvalue,'or');
 hold on 
-plot(C,accu_without,'b--');
-
-legend('with noise','without noise');
+%Finding peak
+[maxvalue1, ind1] = max(accu_without);
+plot(C,accu_without,'b',C(ind1),maxvalue1,'or');
+legend('with noise',strcat(num2str(maxvalue),',',num2str(C(ind))),'without noise',strcat(num2str(maxvalue1),',',num2str(C(ind1))));
 xlabel('Regularization Parameter C');
 ylabel('Accuracy');
 title('Accuracy vs Regularization Parameter');

@@ -36,6 +36,7 @@ tic;
 time2=toc;
 % Compute solution
 lambda=X(1:N2,:);
+%Calculating weights and bias term
 w2=lambda'*xB-sum((V2/N1)*xA,1);
 b2=-sum(xB*w2')/N2;
 

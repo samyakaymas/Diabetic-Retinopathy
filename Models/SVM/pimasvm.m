@@ -102,7 +102,7 @@ for i=1:10
     xTest=features(train_samples+1:end,:);
     yTest=labels(train_samples+1:end,:);
     yTest(yTest==-1)=0;
-
+    %Defining Hyperparameters
     C=0.0625;
     
     [w,b,time]=SVM(xTrain, yTrain, C );

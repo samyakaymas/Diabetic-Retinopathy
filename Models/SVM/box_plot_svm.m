@@ -1,5 +1,6 @@
 clc;clearvars;close all;
 rng default;
+
 %Importing with noise file
 %% Import data from text file.
 % Script for importing data from the following text file:
@@ -51,44 +52,50 @@ WITHNOISE1 = [dataArray{1:end-1}];
 %% Clear temporary variables
 clearvars filename delimiter formatSpec fileID dataArray ans;
 [M,N]=size(WITHNOISE1);
-%Set of values for Hyperparameter
-C=[-4,-3,-2,-1,0,1,2];
-C=2.^C;
-for i=1:length(C)
-    c=C(i);
-    avgaccu=0;
-    for ite=1:10
-        rand_pos = randperm(M); %array of random positions
-        % new array with original data randomly distributed
-        data=zeros(M,N);
-        for k = 1:M
-            data(k,:) = WITHNOISE1(rand_pos(k),:);
-        end
-
-        features=data(:,1:end-1);
-        labels=data(:,end);
-        % Normalize labels
-        features=zscore(features);
-        labels(labels==0)=-1;
-        % Normalize labels
-
-
-        % Separate training and test data (80:20 split)
-        total_samples=size(features,1);
-        train_samples=round(0.8*total_samples);
-
-        % Define training and test samples
-        xTrain=features(1:train_samples,:);
-        yTrain=labels(1:train_samples,:);
-        xTest=features(train_samples+1:end,:);
-        yTest=labels(train_samples+1:end,:);
-        
-        [k]=accutwinsvm(xTrain,yTrain,xTest,yTest,c,c);
-        avgaccu=avgaccu+k;
+boxpl=zeros(10,2);
+%Specifying the seed value
+s = RandStream('mt19937ar','Seed',0);
+for i=1:10
+    rand_pos = randperm(s,M); %array of random positions
+    % new array with original data randomly distributed
+    data=zeros(M,N);
+    for k = 1:M
+        data(k,:) = WITHNOISE1(rand_pos(k),:);
     end
-    accu(i)=avgaccu/10;
+
+    features=data(:,1:end-1);
+    labels=data(:,end);
+    % Normalize labels
+    features=zscore(features);
+    labels(labels==0)=-1;
+    % Normalize labels
+
+
+    % Separate training and test data (80:20 split)
+    total_samples=size(features,1);
+    train_samples=round(0.8*total_samples);
+
+    % Define training and test samples
+    xTrain=features(1:train_samples,:);
+    yTrain=labels(1:train_samples,:);
+    xTest=features(train_samples+1:end,:);
+    yTest=labels(train_samples+1:end,:);
+    yTest(yTest==-1)=0;
+    %Defining Hyperparameters
+    C=0.08;
+    
+    [w,b,time]=SVM(xTrain, yTrain, C );
+    [n,m]=size(xTest);
+    yPred=(xTest*w'+b*ones(n,1))>0;
+    accuracy=(sum(yPred==yTest)/length(yTest))*100;   
+    if(accuracy<50)
+        accuracy=100-accuracy;
+    end
+    boxpl(i,2)=accuracy;
 end
-%importing without noise file
+%Importing without noise file
+
+%% Initialize variables.
 filename = '..\..\Datasets\WITHOUT_NOISE (1).csv';
 delimiter = ',';
 
@@ -128,51 +135,45 @@ WITHOUTNOISE1 = [dataArray{1:end-1}];
 %% Clear temporary variables
 clearvars filename delimiter formatSpec fileID dataArray ans;
 [M,N]=size(WITHOUTNOISE1);
-C=[-4,-3,-2,-1,0,1,2];
-C=2.^C;
-for i=1:length(C)
-    c=C(i);
-    avgaccu=0;
-    for ite=1:10
-        rand_pos = randperm(M); %array of random positions
-        % new array with original data randomly distributed
-        data=zeros(M,N);
-        for k = 1:M
-            data(k,:) = WITHOUTNOISE1(rand_pos(k),:);
-        end
-
-        features=data(:,1:end-1);
-        labels=data(:,end);
-        % Normalize labels
-        features=zscore(features);
-        labels(labels==0)=-1;
-        % Normalize labels
-
-
-        % Separate training and test data (80:20 split)
-        total_samples=size(features,1);
-        train_samples=round(0.8*total_samples);
-
-        % Define training and test samples
-        xTrain=features(1:train_samples,:);
-        yTrain=labels(1:train_samples,:);
-        xTest=features(train_samples+1:end,:);
-        yTest=labels(train_samples+1:end,:);
-        
-        [k]=accutwinsvm(xTrain,yTrain,xTest,yTest,c,c);
-        avgaccu=avgaccu+k;
+for i=1:10
+    rand_pos = randperm(s,M); %array of random positions
+    % new array with original data randomly distributed
+    data=zeros(M,N);
+    for k = 1:M
+        data(k,:) = WITHOUTNOISE1(rand_pos(k),:);
     end
-    accu_without(i)=avgaccu/10;
-end
+
+    features=data(:,1:end-1);
+    labels=data(:,end);
+    % Normalize labels
+    features=zscore(features);
+    labels(labels==0)=-1;
+    % Normalize labels
+
+    % Separate training and test data (80:20 split)
+    total_samples=size(features,1);
+    train_samples=round(0.8*total_samples);
+
+    % Define training and test samples
+    xTrain=features(1:train_samples,:);
+    yTrain=labels(1:train_samples,:);
+    xTest=features(train_samples+1:end,:);
+    yTest=labels(train_samples+1:end,:);
+    yTest(yTest==-1)=0;
+    %Defining Hyperparameter
+    C=0.02;
+    
+    [w,b,time]=SVM(xTrain, yTrain, C );
+    [n,m]=size(xTest);
+    yPred=(xTest*w'+b*ones(n,1))>0;
+    accuracy=(sum(yPred==yTest)/length(yTest))*100;   
+    if(accuracy<50)
+        accuracy=100-accuracy;
+    end
+    boxpl(i,1)=accuracy;
+end;
+%Plotting the box plot
 figure
-%Finding peaks
-[maxvalue, ind] = max(accu);
-plot(C,accu,'r',C(ind),maxvalue,'or');
-hold on 
-%Finding peaks
-[maxvalue1, ind1] = max(accu_without);
-plot(C,accu_without,'b',C(ind1),maxvalue1,'or');
-legend('with noise',strcat(num2str(maxvalue),',',num2str(C(ind))),'without noise',strcat(num2str(maxvalue1),',',num2str(C(ind1))));
-xlabel('Regularization Parameter C');
+boxplot(boxpl,'Labels',{'C=0.02(without_noise)','C=0.08(with_noise)'});
+xlabel('C(hyperparameter)');
 ylabel('Accuracy');
-title('Accuracy vs Regularization Parameter');

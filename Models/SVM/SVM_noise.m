@@ -49,11 +49,14 @@ fclose(fileID);
 WITHNOISE1 = [dataArray{1:end-1}];
 %% Clear temporary variables
 clearvars filename delimiter formatSpec fileID dataArray ans;
+%Populating the data
 WITHNOISE1=vertcat(WITHNOISE1,WITHNOISE1,WITHNOISE1,WITHNOISE1,WITHNOISE1);
 WITHNOISE1=vertcat(WITHNOISE1,WITHNOISE1);
 [M,N]=size(WITHNOISE1);
 avgaccu=0;
 avgtime=0;
+%Specifying the seed value
+s = RandStream('mt19937ar','Seed',0);
 for i=1:10
     rand_pos = randperm(M); %array of random positions
     % new array with original data randomly distributed
@@ -80,7 +83,7 @@ for i=1:10
     xTest=features(train_samples+1:end,:);
     yTest=labels(train_samples+1:end,:);
     yTest(yTest==-1)=0;
-
+    %Defining Hyperparameters
     C=0.0625;
     
     [w,b,time]=SVM(xTrain, yTrain, C );
